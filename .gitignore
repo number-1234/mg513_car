@@ -1,0 +1,13 @@
+# CCS Build output
+Debug/
+
+# IDE settings (machine-specific)
+.settings/
+.theia/
+
+# Claude local settings (contains user paths)
+.claude/settings.local.json
+
+# OS files
+Thumbs.db
+Desktop.ini
