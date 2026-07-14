@@ -1,65 +1,81 @@
+/**
+ * @file    main.c
+ * @brief   循迹小车主程序 — MSPM0G3507, 32MHz
+ */
+
 #include "ti_msp_dl_config.h"
 #include "delay.h"
 #include "stdio.h"
+#include "string.h"
 #include "Uart.h"
 #include "motor.h"
+#include "line_follow.h"
+#include "calibrate.h"
 #include "No_Mcu_Ganv_Grayscale_Sensor_Config.h"
-unsigned short Anolog[8]={0};
-unsigned short white[8]={1053,1225,1277,1216,1033,861,1174,1060};
-unsigned short black[8]={ 82,84,82,86,87,80,87,85};
-unsigned short Normal[8];
-unsigned char rx_buff[256]={0};
-/********************************************No_Mcu_Demo*******************************************/
-/*****************芯片型号 MSPM0G3507 主频80Mhz ***************************************************/
-/*****************引脚 AD0:PB0 AD1:PB1 AD2:PB2  !!!严格按照该顺序接线，接反或接错都会导致数据错误*****/
-/*****************OUT PA27*************************************************************************/
-/*****************串口 Tx PA10 Rx PA11 ************************************************************/
-/*****************传感器供电需要5V电压稳定供电，否则可能无法正常使用***************************/
-/*****************保证单片机和传感器共地，如果不共地无法正常使用***********************************/
-/********************************************No_Mcu_Demo*******************************************/
 
-//初始化
+/* ========================= 传感器校准值 (校准后更新) ========================= */
+unsigned short white[8] = {1053, 1225, 1277, 1216, 1033, 861, 1174, 1060};
+unsigned short black[8] = {73,   74,   75,   72,   75,   77,  78,   75};
+
+unsigned short Anolog[8] = {0};
+unsigned short Normal[8];
+unsigned char  rx_buff[256] = {0};
+
 No_MCU_Sensor sensor;
 unsigned char Digtal;
 
 int main(void)
 {
-	    SYSCFG_DL_init();
-		Motor_Init();
+    SYSCFG_DL_init();
 
-		/* 左电机A 50%占空比, 右电机B 20%占空比, 均正转 */
-		Motor_Run(MOTOR_A, MOTOR_FORWARD, 0);
-		Motor_Run(MOTOR_B, MOTOR_FORWARD, 20);
+#if DO_CALIBRATION
+    /* ========== 校准模式 ========== */
+    Calibrate_Run(&sensor);
+    /* 不会到达这里 */
+#else
+    /* ========== 正常循迹模式 ========== */
+    Motor_Init();
 
-			//根据黑白校准值初始化传感器
-			//No_MCU_Ganv_Sensor_Init(&sensor,white,black);
-			//开启ADC中断
-	 	   // NVIC_EnableIRQ(ADC12_0_INST_INT_IRQN);
-		
-			Tick_delay(100);
+    /* 传感器初始化 */
+    No_MCU_Ganv_Sensor_Init(&sensor, white, black);
+    NVIC_EnableIRQ(ADC12_0_INST_INT_IRQN);
 
-			while (1) {
-			// //无时基传感器常规任务，包含模拟量，数字量，归一化量
-			// No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);
-			// //获取传感器数字量结果(只有当有黑白值传入进去了之后才会有这个值！！)
-			// Digtal=Get_Digtal_For_User(&sensor);
-			// sprintf((char *)rx_buff,"Digtal %d-%d-%d-%d-%d-%d-%d-%d\r\n",(Digtal>>0)&0x01,(Digtal>>1)&0x01,(Digtal>>2)&0x01,(Digtal>>3)&0x01,(Digtal>>4)&0x01,(Digtal>>5)&0x01,(Digtal>>6)&0x01,(Digtal>>7)&0x01);
-			// uart0_send_string((char *)rx_buff);
-			// memset(rx_buff,0,256);
-			
-			// //获取传感器模拟量结果(有黑白值初始化后返回1 没有返回 0)
-			// if(Get_Anolog_Value(&sensor,Anolog)){
-			// sprintf((char *)rx_buff,"Anolog %d-%d-%d-%d-%d-%d-%d-%d\r\n",Anolog[0],Anolog[1],Anolog[2],Anolog[3],Anolog[4],Anolog[5],Anolog[6],Anolog[7]);
-			// uart0_send_string((char *)rx_buff);
-			// memset(rx_buff,0,256);
-			// }
-			
-			// //获取传感器归一化结果(只有当有黑白值传入进去了之后才会有这个值！！有黑白值初始化后返回1 没有返回 0)
-			// if(Get_Normalize_For_User(&sensor,Normal)){
-			// sprintf((char *)rx_buff,"Normalize %d-%d-%d-%d-%d-%d-%d-%d\r\n",Normal[0],Normal[1],Normal[2],Normal[3],Normal[4],Normal[5],Normal[6],Normal[7]);
-			// uart0_send_string((char *)rx_buff);
-			// memset(rx_buff,0,256);
-			// }
-			// Tick_delay(1);
-		}
+    /* 循迹控制器初始化 */
+    LineFollow_Init();
+
+    Tick_delay(100);
+
+    while (1) {
+        uint8_t lf_digital;
+        uint8_t left_speed, right_speed;
+
+        /* 1. 读取传感器 */
+        No_Mcu_Ganv_Sensor_Task_Without_tick(&sensor);
+        Digtal = Get_Digtal_For_User(&sensor);
+
+        /* 2. 位序转换 (Direction=1 → bit0=最右, 翻转使bit0=最左) */
+        lf_digital = 0;
+        for (int i = 0; i < 8; i++) {
+            if (Digtal & (1 << i)) {
+                lf_digital |= (1 << (7 - i));
+            }
+        }
+
+        /* 3. PD循迹 → 左右轮速度 */
+        LineFollow_Run(lf_digital, &left_speed, &right_speed);
+
+        /* 4. 驱动电机 */
+        Motor_Run(MOTOR_A, MOTOR_FORWARD, left_speed);
+        Motor_Run(MOTOR_B, MOTOR_FORWARD, right_speed);
+
+        /* 5. 串口调试: 传感器位图 + 速度 */
+        sprintf((char *)rx_buff, "D:%d%d%d%d%d%d%d%d L:%d R:%d\r\n",
+                (Digtal>>7)&1, (Digtal>>6)&1, (Digtal>>5)&1, (Digtal>>4)&1,
+                (Digtal>>3)&1, (Digtal>>2)&1, (Digtal>>1)&1, (Digtal>>0)&1,
+                left_speed, right_speed);
+        uart0_send_string((char *)rx_buff);
+
+        Tick_delay(5);
+    }
+#endif
 }
