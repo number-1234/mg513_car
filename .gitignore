@@ -8,6 +8,11 @@ Debug/
 # Claude local settings (contains user paths)
 .claude/settings.local.json
 
+# Local AI/tooling state
+.agents/
+.codex/
+*.theia-workspace
+
 # OS files
 Thumbs.db
 Desktop.ini

@@ -1,25 +1,34 @@
 #include "delay.h"
-// SysTick中断服务函数(1ms)
-void SysTick_Handler(void) {
-    Tick_SysTickCallback();
-}
-volatile uint32_t Tick = 0;
-void delay_us(uint32_t us) {
-    // 根据实际测试调整此值
-    // 80MHz下大约需要 (us * 80) 次循环（需校准）
-    volatile uint32_t count = us * 80; 
-    while(count--);
-}
-/**
- * @brief 延时(使用SysTick中断计时)
- * @param t 延时时间(ms)
-*/
-void Tick_delay(uint32_t t) {
-    uint32_t tEnd = Tick + t;
-    while (Tick < tEnd);
+
+/* SysTick 每 1 ms 自增一次。 */
+static volatile uint32_t s_tick_ms;
+
+void delay_us(uint32_t microseconds)
+{
+    /* 32 MHz 下的近似软件延时，仅供传感器短时序使用。 */
+    volatile uint32_t cycles = microseconds * 32U;
+
+    while (cycles > 0U) {
+        cycles--;
+    }
 }
 
-// SysTick中断回调(1ms)
-void Tick_SysTickCallback(void) {
-    Tick++;
+void delay_ms(uint32_t milliseconds)
+{
+    const uint32_t start = s_tick_ms;
+
+    while ((uint32_t)(s_tick_ms - start) < milliseconds) {
+        /* 使用无符号减法，计数器回绕时仍能正确判断经过时间。 */
+    }
+}
+
+uint32_t system_millis(void)
+{
+    return s_tick_ms;
+}
+
+void SysTick_Handler(void)
+{
+    /* SysConfig 已将 SysTick 周期配置为 1 ms。 */
+    s_tick_ms++;
 }

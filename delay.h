@@ -1,10 +1,15 @@
-#ifndef delay_h
-#define delay_h
+#ifndef DELAY_H
+#define DELAY_H
 
-#include "ti_msp_dl_config.h"
-extern volatile uint32_t Tick;
-void delay_us(uint32_t us);
-void Tick_delay(uint32_t t);
-void Tick_SysTickCallback(void);
-void SysTick_Handler(void);
-#endif /* ti_msp_dl_config_h */
+#include <stdint.h>
+
+/* 微秒级忙等待；第三方灰度传感器驱动依赖此接口。 */
+void delay_us(uint32_t microseconds);
+
+/* 基于 SysTick 的毫秒级阻塞延时。 */
+void delay_ms(uint32_t milliseconds);
+
+/* 返回开机以来的毫秒数，约 49.7 天回绕一次。 */
+uint32_t system_millis(void);
+
+#endif

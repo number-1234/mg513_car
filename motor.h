@@ -1,50 +1,44 @@
-/**
- * @file    motor.h
- * @brief   双电机驱动模块 — 基于 SysConfig 配置
- *          芯片: MSPM0G3507  主频: 32MHz
- *
- *          左电机A: AIN1=PA26 AIN2=PA25 PWM=PA21 (TIMA0 CCP0)
- *          右电机B: BIN1=PA24 BIN2=PA23 PWM=PA22 (TIMA0 CCP1)
- *          使能:    SBYT=PA2
- *
- *          ⚠ GPIO 和 PWM 已由 SysConfig (SYSCFG_DL_init) 完成初始化，
- *          本模块仅负责运行控制，不再重复初始化外设。
- */
-
 #ifndef MOTOR_H
 #define MOTOR_H
 
-#include "ti_msp_dl_config.h"
+#include <stdint.h>
 
-/* ========================= 电机选择 ========================= */
-#define MOTOR_A     0       /* 左电机 */
-#define MOTOR_B     1       /* 右电机 */
+typedef enum {
+    MOTOR_LEFT = 0,  /* 左轮 */
+    MOTOR_RIGHT,    /* 右轮 */
+    MOTOR_COUNT     /* 电机数量，仅用于数组长度和遍历 */
+} motor_id_t;
 
-/* ========================= 电机方向 ========================= */
-#define MOTOR_FORWARD    0  /* 正转 (前进) */
-#define MOTOR_BACKWARD   1  /* 反转 (后退) */
-#define MOTOR_STOP       2  /* 停止 (刹车) */
+typedef enum {
+    MOTOR_STOP = 0, /* 刹车停止 */
+    MOTOR_FORWARD,  /* 前进 */
+    MOTOR_BACKWARD  /* 后退 */
+} motor_direction_t;
 
-/* ========================= PWM 参数 (来自 SysConfig) ========================= */
-#define MOTOR_PWM_PERIOD        1000U   /* PWM 周期 (SysConfig: period=1000) */
-#define MOTOR_PWM_FREQ          32000U  /* PWM 频率 = 32MHz / 1000 = 32KHz */
+/* 单个电机的只读运行数据，供主程序串口输出。 */
+typedef struct {
+    int32_t sampled_pulses;     /* 最近 100 ms 内的编码器脉冲数 */
+    float target_speed_mm_s;    /* 目标速度，单位 mm/s */
+    float measured_speed_mm_s;  /* 实测速度，单位 mm/s */
+    uint16_t pwm;               /* 当前 PWM，范围 0～1000 */
+} motor_telemetry_t;
 
-/* ========================= 函数声明 ========================= */
+/* 初始化电机 GPIO、PWM、编码器中断和速度闭环定时器。 */
+void motor_init(void);
 
-void Motor_Init(void);
+/* 设置指定电机的方向。 */
+void motor_set_direction(motor_id_t motor, motor_direction_t direction);
 
-void Motor_SetSpeed(uint8_t motor, uint8_t speed);
-void Motor_SetDirection(uint8_t motor, uint8_t direction);
-void Motor_Run(uint8_t motor, uint8_t direction, uint8_t speed);
+/* 直接设置指定电机的 PWM，输入会被限制在 0～1000。 */
+void motor_set_pwm(motor_id_t motor, uint16_t pwm);
 
-void Motor_Stop(uint8_t motor);
-void Motor_StopAll(void);
+/* 设置速度闭环目标；小于等于 0 时控制器输出 0。 */
+void motor_set_speed_target(motor_id_t motor, float speed_mm_s);
 
-/* 小车高级控制 */
-void Car_Forward(uint8_t speed);
-void Car_Backward(uint8_t speed);
-void Car_TurnLeft(uint8_t speed);
-void Car_TurnRight(uint8_t speed);
-void Car_Stop(void);
+/* 清空两侧控制器状态并立即刹车。 */
+void motor_stop_all(void);
 
-#endif /* MOTOR_H */
+/* 复制指定电机的运行快照，不暴露模块内部状态。 */
+void motor_get_telemetry(motor_id_t motor, motor_telemetry_t *telemetry);
+
+#endif

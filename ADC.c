@@ -1,35 +1,41 @@
 #include "ADC.h"
-volatile bool gCheckADC;        //ADC采集成功标志位
-//读取ADC的数据
+
+#include <stdbool.h>
+
+#include "ti_msp_dl_config.h"
+
+/* ADC 转换完成标志，由中断置位。 */
+static volatile bool s_conversion_complete;
+
+uint16_t adc_read(void)
+{
+    uint16_t result;
+
+    /* 先清标志再启动转换，避免误用上一次转换结果。 */
+    s_conversion_complete = false;
+    DL_ADC12_startConversion(ADC12_0_INST);
+
+    /* 等待 ADC 中断；WFE 可以减少忙等期间的功耗。 */
+    while (!s_conversion_complete) {
+        __WFE();
+    }
+
+    result = (uint16_t)DL_ADC12_getMemResult(
+        ADC12_0_INST, ADC12_0_ADCMEM_ADC_CH0);
+    return result;
+}
+
 unsigned int adc_getValue(void)
 {
-        unsigned int gAdcResult = 0;
-
-        //软件触发ADC开始转换
-        DL_ADC12_startConversion(ADC12_0_INST);
-        //如果当前状态为正在转换中则等待转换结束
-        while (false == gCheckADC) {
-            __WFE();
-        }
-        //获取数据
-        gAdcResult = DL_ADC12_getMemResult(ADC12_0_INST, ADC12_0_ADCMEM_ADC_CH0);
-
-        //清除标志位
-        gCheckADC = false;
-
-        return gAdcResult;
+    /* 保留第三方灰度驱动要求的函数名和返回类型。 */
+    return (unsigned int)adc_read();
 }
-//ADC中断服务函数
+
 void ADC12_0_INST_IRQHandler(void)
 {
-        //查询并清除ADC中断
-        switch (DL_ADC12_getPendingInterrupt(ADC12_0_INST))
-        {
-              //检查是否完成数据采集
-              case DL_ADC12_IIDX_MEM0_RESULT_LOADED:
-                        gCheckADC = true;//将标志位置1
-                        break;
-              default:
-                        break;
-        }
+    /* 只处理 MEM0 转换完成事件。 */
+    if (DL_ADC12_getPendingInterrupt(ADC12_0_INST) ==
+        DL_ADC12_IIDX_MEM0_RESULT_LOADED) {
+        s_conversion_complete = true;
+    }
 }
