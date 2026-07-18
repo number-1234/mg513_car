@@ -3,42 +3,40 @@
 
 #include <stdint.h>
 
+/* 电机编号，用于指定左轮或右轮。 */
 typedef enum {
-    MOTOR_LEFT = 0,  /* 左轮 */
-    MOTOR_RIGHT,    /* 右轮 */
-    MOTOR_COUNT     /* 电机数量，仅用于数组长度和遍历 */
+    MOTOR_LEFT = 0, /* 左轮，下标为0 */
+    MOTOR_RIGHT,    /* 右轮，下标为1 */
+    MOTOR_COUNT     /* 电机数量，只用于内部数组长度和循环 */
 } motor_id_t;
 
+/* 电机运动方向。 */
 typedef enum {
     MOTOR_STOP = 0, /* 刹车停止 */
     MOTOR_FORWARD,  /* 前进 */
     MOTOR_BACKWARD  /* 后退 */
 } motor_direction_t;
 
-/* 单个电机的只读运行数据，供主程序串口输出。 */
-typedef struct {
-    int32_t sampled_pulses;     /* 最近 100 ms 内的编码器脉冲数 */
-    float target_speed_mm_s;    /* 目标速度，单位 mm/s */
-    float measured_speed_mm_s;  /* 实测速度，单位 mm/s */
-    uint16_t pwm;               /* 当前 PWM，范围 0～1000 */
-} motor_telemetry_t;
-
-/* 初始化电机 GPIO、PWM、编码器中断和速度闭环定时器。 */
+/* 初始化电机GPIO、PWM、编码器中断和100ms速度环定时器。 */
 void motor_init(void);
 
-/* 设置指定电机的方向。 */
+/* 以下是底层单电机控制接口。 */
 void motor_set_direction(motor_id_t motor, motor_direction_t direction);
+void motor_set_pwm(motor_id_t motor, uint16_t pwm);            /* PWM范围0~1000 */
+void motor_set_speed_target(motor_id_t motor, float speed_mm_s);/* 目标速度mm/s */
 
-/* 直接设置指定电机的 PWM，输入会被限制在 0～1000。 */
-void motor_set_pwm(motor_id_t motor, uint16_t pwm);
+/* 最常用接口：让左右轮同时前进，并分别指定目标速度。 */
+void motor_drive_forward(float left_speed_mm_s, float right_speed_mm_s);
 
-/* 设置速度闭环目标；小于等于 0 时控制器输出 0。 */
-void motor_set_speed_target(motor_id_t motor, float speed_mm_s);
-
-/* 清空两侧控制器状态并立即刹车。 */
+/* 立即清空速度环状态、PWM和目标速度，并让两侧电机刹车。 */
 void motor_stop_all(void);
 
-/* 复制指定电机的运行快照，不暴露模块内部状态。 */
-void motor_get_telemetry(motor_id_t motor, motor_telemetry_t *telemetry);
+/* 直接读取左右轮数据，不需要创建或传递结构体。 */
+float motor_get_left_speed(void);          /* 左轮实测速度，mm/s */
+float motor_get_right_speed(void);         /* 右轮实测速度，mm/s */
+float motor_get_left_target_speed(void);   /* 左轮目标速度，mm/s */
+float motor_get_right_target_speed(void);  /* 右轮目标速度，mm/s */
+uint16_t motor_get_left_pwm(void);         /* 左轮当前PWM，0~1000 */
+uint16_t motor_get_right_pwm(void);        /* 右轮当前PWM，0~1000 */
 
 #endif

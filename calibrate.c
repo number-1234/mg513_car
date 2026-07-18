@@ -78,7 +78,7 @@ void sensor_calibration_run(void)
     print_values("BLACK", black);
 
     /* 打印可复制到车辆控制模块中的最终结果。 */
-    uart_write_string("\r\n请将以下数值复制到 car_control.c：\r\n");
+    uart_write_string("\r\n请将以下数值复制到 line_tracking.c：\r\n");
     print_values("white[8]", white);
     print_values("black[8]", black);
     uart_write_string("校准完成。请关闭校准模式并重新构建。\r\n");

@@ -1,24 +1,22 @@
 #ifndef APP_CONFIG_H
 #define APP_CONFIG_H
 
-/* 应用运行模式 ------------------------------------------------------------ */
+/* 设为1时进入灰度传感器校准程序，正常运行请保持为0。 */
+#define APP_SENSOR_CALIBRATION_ENABLED      0
 
-/* 设为 1：进入灰度传感器黑白校准；设为 0：正常运行。 */
-#define APP_SENSOR_CALIBRATION_ENABLED  0
+/* 上电后等待外设电源和信号稳定的时间。 */
+#define APP_STARTUP_DELAY_MS              100U
 
-/* 设为 1：关闭循迹，只测试左右轮速度闭环。 */
-#define APP_MOTOR_TEST_MODE             0
+/* 主控制循环周期：每5ms执行一次循迹或直行控制。 */
+#define APP_CONTROL_PERIOD_MS               5U
 
-/* 电机闭环测试参数。 */
-#define APP_MOTOR_TEST_TARGET_MM_S      500.0f
-#define APP_MOTOR_TEST_INITIAL_PWM      300U
+/* 串口数据打印周期，过快打印会影响主循环实时性。 */
+#define APP_PRINT_PERIOD_MS               100U
 
-/* 主程序运行参数。 */
-#define APP_STARTUP_DELAY_MS            100U
-#define APP_CONTROL_PERIOD_MS              5U
-#define APP_TELEMETRY_PERIOD_MS         100U
+/* 循迹输出百分比换算为电机速度时的满量程，单位mm/s。 */
+#define APP_LINE_SPEED_FULL_SCALE_MM_S   1000.0f
 
-/* 循迹模块输出的百分比，按照此满量程换算为 mm/s。 */
-#define APP_LINE_SPEED_FULL_SCALE_MM_S  1000.0f
+/* 丢线后使用MPU6050保持直行的基础速度，单位mm/s。 */
+#define APP_STRAIGHT_SPEED_MM_S         250.0f
 
 #endif

@@ -42,22 +42,9 @@ static float calculate_line_position(uint8_t sensor_bits)
 static void handle_lost_line(uint8_t *left_speed, uint8_t *right_speed)
 {
     s_integral = 0.0f;
-    if (s_lost_cycles < LF_LOST_SEARCH_CYCLES) {
-        s_lost_cycles++;
-    }
-
-    if ((s_lost_cycles < LF_LOST_SEARCH_CYCLES) &&
-        (s_last_error > LF_LOST_MIN_ERROR)) {
-        *left_speed = LF_LOST_SEARCH_SPEED;
-        *right_speed = 0U;
-    } else if ((s_lost_cycles < LF_LOST_SEARCH_CYCLES) &&
-               (s_last_error < -LF_LOST_MIN_ERROR)) {
-        *left_speed = 0U;
-        *right_speed = LF_LOST_SEARCH_SPEED;
-    } else {
-        *left_speed = 0U;
-        *right_speed = 0U;
-    }
+    s_lost_cycles = LF_LOST_SEARCH_CYCLES;
+    *left_speed = 0U;
+    *right_speed = 0U;
 }
 
 void LineFollow_Init(void)
@@ -67,9 +54,7 @@ void LineFollow_Init(void)
     s_lost_cycles = 0U;
 }
 
-void LineFollow_Run(uint8_t digital_sensors,
-                    uint8_t *p_left_speed,
-                    uint8_t *p_right_speed)
+void LineFollow_Run(uint8_t digital_sensors,uint8_t *p_left_speed, uint8_t *p_right_speed)
 {
     float position;
     float error;

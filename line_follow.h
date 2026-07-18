@@ -5,10 +5,10 @@
 
 /* 循迹控制器参数。
  * 速度值表示满量程速度的百分比，最终由 car_control.c 换算成 mm/s。 */
-#define LF_KP                  3.0f
-#define LF_KD                  1.0f
+#define LF_KP                  4.0f
+#define LF_KD                  0.5f
 #define LF_KI                  0.0f
-#define LF_BASE_SPEED         15
+#define LF_BASE_SPEED         30
 #define LF_MIN_SPEED           0
 #define LF_MAX_SPEED           35
 
