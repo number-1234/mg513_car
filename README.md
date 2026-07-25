@@ -1,67 +1,76 @@
 # MSPM0G3507 循迹小车
 
-这是一个基于 TI MSPM0G3507、DriverLib 和 8 路灰度传感器的双电机循迹车工程。软件分为应用配置、车辆控制、电机闭环、传感器校准和基础硬件接口几个层次。
+程序框架按照参考工程的 `main + Control + Encoder + Sensor + GYRO + sys` 结构整理。路线状态使用全局 `flag` 和直接的 `if / else if` 判断，方便比赛时快速修改。
 
-## 当前运行模式
+## 程序结构
 
-所有应用开关都集中在 `app_config.h`：
+```text
+main.c                 主循环、flag、定时器中断、编码器中断
+Control/control.c      电机方向、PWM、速度 PI、循迹和陀螺仪控制
+Encoder/Encoder.c      编码器计数和左右轮测速
+Sensor/Sensor.c        灰度读取、循迹权重、路线判断和黑白标定
+GYRO/GYRO.c            MPU6050 DMP 初始化和角度读取
+sys/sys.c              延时、串口 printf、限幅和角度处理
+```
 
-- `APP_SENSOR_CALIBRATION_ENABLED`：设为 `1` 时运行黑白校准。
-- `APP_MOTOR_TEST_MODE`：设为 `1` 时绕过循迹，只测试左右轮速度闭环。
-- `APP_MOTOR_TEST_TARGET_MM_S`：电机测试目标速度，当前为 500 mm/s。
-- `APP_TELEMETRY_PERIOD_MS`：串口遥测周期，当前为 100 ms。
+以下文件属于本车硬件底层，因传感器和陀螺仪型号与参考工程不同而保留：
 
-当前工程处于电机闭环测试模式，左右轮目标速度均为 500 mm/s。
+```text
+ADC.c / ADC.h
+No_Mcu_Ganv_Grayscale_Sensor.c
+No_Mcu_Ganv_Grayscale_Sensor_Config.h
+mpu6050/
+delay.h
+empty.syscfg
+```
 
-## 模块职责
+`delay.h` 只给现有灰度和 MPU6050 驱动提供兼容声明，延时实现已经放入 `sys/sys.c`。
 
-| 模块 | 职责 |
+## flag 状态
+
+| flag | 车辆动作 |
 | --- | --- |
-| `main.c` | 系统启动、模式选择、主循环和串口遥测 |
-| `app_config.h` | 集中管理应用模式和运行参数 |
-| `car_control.c/.h` | 组合传感器、循迹输出和左右电机目标速度 |
-| `motor.c/.h` | 电机方向/PWM、编码器采样、100 ms PI 速度闭环和遥测 |
-| `calibrate.c/.h` | 灰度传感器黑白校准流程 |
-| `ADC.c/.h` | 阻塞式 ADC 采样接口 |
-| `Uart.c/.h` | UART 字符和字符串发送接口 |
-| `delay.c/.h` | SysTick 毫秒时基和微秒/毫秒延时 |
-| `line_follow.c/.h` | 循迹算法；本次重构未修改 |
-| `No_Mcu_Ganv_Grayscale_Sensor.*` | 第三方灰度传感器驱动；本次重构未修改 |
+| `1` | 按 8 路灰度权重循迹 |
+| `2` | 丢线后停车等待 1 秒 |
+| `3` | 以当前 Yaw 为 0°，单轮转向 55° |
+| `4` | MPU6050 保持方向直行，找到黑线后回到 flag 1 |
 
-## 电机闭环
+路线状态判断集中在 `Sensor/Sensor.c` 的 `Follow_Route()`，每个状态对应一个直接的 `if`。车辆动作集中在 `Control/control.c` 的 `Control()`。
 
-- 左电机 PWM：PA21 / TIMG6 CCP0
+## 常用修改位置
+
+- 循迹速度、直行速度、转向角度、转向速度和 PID：`Control/control.c` 文件顶部。
+- 丢线等待时间、传感器标定开关和黑白值：`Sensor/Sensor.c` 文件顶部。
+- 路线状态切换：`Sensor/Sensor.c` 的 `Follow_Route()`。
+- 主循环和中断调用顺序：`main.c`。
+
+## 循迹权重
+
+`Incremental_Quantity()` 使用八个直接的 `if`：
+
+```text
+-12  -9  -7  -3  +3  +7  +9  +12
+```
+
+`Sensor_Bits == 0xFF` 表示全白丢线；`0x00` 表示全黑，继续作为黑线或交叉区域处理。
+
+## 硬件保持不变
+
+本次结构调整没有修改 `empty.syscfg`：
+
+- 左电机 PWM：PA21
 - 左电机方向：PA26、PA25
 - 左编码器：PA17、PA16
-- 右电机 PWM：PA22 / TIMG6 CCP1
+- 右电机 PWM：PA22
 - 右电机方向：PA24、PA23
 - 右编码器：PA15、PA14
 - 电机驱动 STBY：PA2
-- PWM 范围：0～1000
-- 速度采样和 PI 更新周期：100 ms
-
-电机状态由 `motor.c` 内部管理。其他模块只能通过公开函数设置方向、PWM、目标速度或读取 `motor_telemetry_t`，不会直接修改控制器内部变量。
-
-## 串口遥测
-
-输出示例：
-
-```text
-Pulse:89,88 Target:500,500 Speed:505,500 PWM:294,276
-```
-
-字段依次表示最近 100 ms 的编码器脉冲、目标速度、实测速度和 PWM。
-
-## 灰度校准
-
-1. 将 `APP_SENSOR_CALIBRATION_ENABLED` 设为 `1`。
-2. 烧录后按串口提示依次放置在白色和黑色表面。
-3. 将输出的校准数组更新到 `car_control.c`。
-4. 将校准开关恢复为 `0`，重新构建。
+- MPU6050 硬件 I²C：PA0、PA1
+- 灰度 ADC：PA27
 
 ## 构建环境
 
-- Code Composer Studio Debug 配置
+- Code Composer Studio Debug
 - TI Arm Clang 4.0.4 LTS
 - MSPM0 SDK 2.10.0.04
 - SysConfig 1.26.2

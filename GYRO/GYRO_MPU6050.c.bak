@@ -1,0 +1,42 @@
+#include "GYRO.h"
+
+//#include "mpu6050/inc/inv_mpu.h"
+
+float Pitch;
+float Roll;
+float Yaw;
+
+static bool s_gyro_ready;
+
+uint8_t GYRO_Init(void)
+{
+    uint8_t status;
+
+    Pitch = 0.0f;
+    Roll = 0.0f;
+    Yaw = 0.0f;
+    s_gyro_ready = false;
+
+    status = mpu_dmp_init();
+    if (status == 0U) {
+        s_gyro_ready = true;
+    }
+    return status;
+}
+
+bool GYRO_Update(void)
+{
+    if (!s_gyro_ready) {
+        return false;
+    }
+
+    if (mpu_dmp_get_data(&Pitch, &Roll, &Yaw) == 0U) {
+        return true;
+    }
+    return false;
+}
+
+bool GYRO_Is_Ready(void)
+{
+    return s_gyro_ready;
+}

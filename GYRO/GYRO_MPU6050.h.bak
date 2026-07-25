@@ -1,0 +1,16 @@
+#ifndef GYRO_GYRO_H
+#define GYRO_GYRO_H
+
+#include <stdbool.h>
+#include <stdint.h>
+
+/* 与参考工程一致，姿态角作为只读全局量供控制模块直接使用。 */
+extern float Pitch;
+extern float Roll;
+extern float Yaw;
+
+uint8_t GYRO_Init(void);
+bool GYRO_Update(void);
+bool GYRO_Is_Ready(void);
+
+#endif

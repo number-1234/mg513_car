@@ -1,0 +1,32 @@
+{
+    "configurations": [
+        {
+            "name": "MSPM0G3507_Config",
+            "compileCommands": "${workspaceFolder}/Debug/.clangd/compile_commands.json",
+            "compilerPath": "D:/ti/ccs2051/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/bin/tiarmclang.exe",
+            "includePath": [
+                "${workspaceFolder}",
+                "${workspaceFolder}/Debug",
+                "D:/ti/ccs2051/mspm0_sdk_2_10_00_04/source",
+                "D:/ti/ccs2051/mspm0_sdk_2_10_00_04/source/third_party/CMSIS/Core/Include"
+            ],
+            "browse": {
+                "path": [
+                    "${workspaceFolder}",
+                    "${workspaceFolder}/Debug",
+                    "D:/ti/ccs2051/mspm0_sdk_2_10_00_04/source",
+                    "D:/ti/ccs2051/mspm0_sdk_2_10_00_04/source/third_party/CMSIS/Core/Include"
+                ],
+                "limitSymbolsToIncludedHeaders": false
+            },
+            "defines": [
+                "__MSPM0G3507__",
+                "__USE_SYSCONFIG__"
+            ],
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "windows-clang-arm"
+        }
+    ],
+    "version": 4
+}
