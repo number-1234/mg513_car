@@ -21,8 +21,8 @@
 #include "sys/sys.h"          /* normalize_angle */
 
 /* ── 可调参数 ── */
-#define ANGLE_KP       30.0f
-#define ANGLE_KD       20.0f
+#define ANGLE_KP       15.0f
+#define ANGLE_KD       7.0f
 #define PWM_DEADBAND   40
 #define PWM_MAX_ANGLE  500
 
@@ -56,8 +56,6 @@ void AngleHold_Control(void)
 {
     float error, yaw_delta;
     int   pwm_out;
-
-    if (!s_inited) return;
 
     if (!GYRO_Is_Ready()) {
         Set_Pwm(0, 0);

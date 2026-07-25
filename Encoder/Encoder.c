@@ -52,8 +52,7 @@ void Encoder_Init(void)
     EncoderA_Last_Raw = 0;
     EncoderB_Last_Raw = 0;
 
-    /* 使能电机驱动 */
-    DL_GPIO_setPins(MOTOR_PORT, MOTOR_SBYT_PIN);
+
 
     /* 4 路 PWM 初始归零，电机停转 */
     DL_Timer_setCaptureCompareValue(PWM_0_INST, 0U, GPIO_PWM_0_C0_IDX);  /* PA21 */

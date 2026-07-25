@@ -10,7 +10,7 @@
 #include "Sensor/Sensor.h"
 #include "sys/sys.h"
 
-volatile int flag = 1;
+volatile int flag = 2;  /* 初始停车 */
 
 static uint32_t s_last_print_ms;
 
@@ -40,14 +40,11 @@ int main(void)
     gyro_status = GYRO_Init();
     Encoder_Init();
 
-    if (gyro_status == 0U) {
-        printf("JY901S init OK\r\n");
-    } else {
-        printf("JY901S init failed: %u\r\n",
-               (unsigned int)gyro_status);
+    if (gyro_status != 0U) {
+        printf("JY901S fail: %u\r\n", (unsigned int)gyro_status);
     }
 
-    flag = 1;
+    flag = 3;
     s_last_print_ms = system_millis();
 
     while (1) {
