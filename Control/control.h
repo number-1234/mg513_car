@@ -11,11 +11,10 @@ void Control(void);
 void Control_Stop(void);
 
 void  Set_Pwm(int Left, int Right);
-float PWM_Limit(float value, float maximum, float minimum);
-float PID_A(float Encoder, float Target);
-float PID_B(float Encoder, float Target);
-float GYRO_Control(float now, float target);
-void beep_10ms();
+float PWM_Limit(float v, float max, float min);
+float PID_A(float e, float t);
+float PID_B(float e, float t);
+float GYRO_Control(float n, float t);
 float Control_Get_Angle(void);
 float Control_Get_Bias(void);
 

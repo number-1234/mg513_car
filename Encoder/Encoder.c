@@ -24,7 +24,7 @@
 
 /* ── 物理常量 ── */
 #define ENCODER_PPR_MOTOR      260.0f     /* 电机轴每圈脉冲 */
-#define GEAR_RATIO              28.0f     /* 减速比 */
+#define GEAR_RATIO              1.33f    /* 实测校准 (260×1.33≈346) */
 #define PULSES_PER_WHEEL       (ENCODER_PPR_MOTOR * GEAR_RATIO)  /* 7280 */
 #define WHEEL_DIAMETER_MM       65.0f     /* 轮径 */
 #define SAMPLE_RATE_HZ          10.0f     /* 100ms → 10Hz */
