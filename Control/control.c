@@ -122,8 +122,6 @@ void Control(void)
 
         TargetA = STRAIGHT_SPEED_MM_S - steer;
         TargetB = STRAIGHT_SPEED_MM_S + steer;
-        TargetA = PWM_Limit(TargetA, LINE_MAX_SPEED_MM_S, 30.0f);
-        TargetB = PWM_Limit(TargetB, LINE_MAX_SPEED_MM_S, 30.0f);
     }
 
     /* ── 未定义 ── */

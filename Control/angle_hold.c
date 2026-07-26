@@ -22,7 +22,7 @@
 
 /* ── 可调参数 ── */
 #define ANGLE_KP       15.0f
-#define ANGLE_KD       7.0f
+#define ANGLE_KD       10.0f
 #define PWM_DEADBAND   40
 #define PWM_MAX_ANGLE  500
 
