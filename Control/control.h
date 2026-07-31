@@ -6,9 +6,17 @@ extern volatile int Motor_Right;
 extern volatile float Turn_Zero_Yaw;
 extern volatile float Straight_Zero_Yaw;
 
+typedef enum {
+    CONTROL_LINE_PROFILE_FAST = 0,
+    CONTROL_LINE_PROFILE_SLOW_FOLLOW,
+    CONTROL_LINE_PROFILE_DISTANCE
+} ControlLineProfile;
+
 void Control_Init(void);
 void Control(void);
 void Control_Stop(void);
+void Control_SetLineProfile(ControlLineProfile profile);
+void Control_SetTrackDistance(float distance_mm);
 
 void  Set_Pwm(int Left, int Right);
 float PWM_Limit(float v, float max, float min);
